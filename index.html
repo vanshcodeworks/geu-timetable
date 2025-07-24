@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEU Timetable Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .semester-btn.active,
+        .section-btn.active {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+        .day-tab.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .timetable-grid-cell:hover {
+            background-color: #eff6ff; /* blue-50 */
+            cursor: pointer;
+        }
+        .current-lecture-grid {
+            position: relative;
+            background-color: #bfdbfe; /* blue-200 */
+        }
+        .current-lecture-grid::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: #3b82f6;
+            animation: pulse-border 2s infinite;
+        }
+        .current-lecture-mobile {
+            border-left: 4px solid #3b82f6;
+            animation: pulse-border 2s infinite;
+            background-color: #dbeafe; /* blue-100 */
+        }
+        @keyframes pulse-border {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="app min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-md z-10">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">Graphic Era University</h1>
+                        <p class="text-sm text-gray-500">CSE Timetable Viewer</p>
+                    </div>
+                    <div class="text-right">
+                        <p id="currentTime" class="text-lg font-semibold text-blue-600"></p>
+                        <p id="currentDate" class="text-xs text-gray-500"></p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            <div class="container mx-auto p-4 md:p-6">
+                <!-- Semester & Section Selector -->
+                <div class="bg-white p-4 rounded-xl shadow-lg mb-6 space-y-4">
+                    <div>
+                        <p class="text-center font-medium mb-3 text-gray-700">1. Select Semester</p>
+                        <div id="semester-selector-container" class="flex flex-wrap justify-center items-center gap-2 md:gap-3">
+                           <button class="semester-btn text-sm md:text-base bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-gray-50 hover:border-blue-400 transition-all duration-200" data-semester="3">3rd Semester</button>
+                           <button class="semester-btn text-sm md:text-base bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-gray-50 hover:border-blue-400 transition-all duration-200" data-semester="5">5th Semester</button>
+                        </div>
+                    </div>
+                    <div id="section-selector-wrapper" class="hidden">
+                         <p class="text-center font-medium mb-3 text-gray-700">2. Select Section</p>
+                        <div id="section-selector-container" class="flex flex-wrap justify-center items-center gap-2 md:gap-3">
+                            <!-- Buttons injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Welcome State -->
+                <div id="welcomeState" class="text-center p-8 bg-white rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-gray-800">Welcome to the Timetable Viewer</h2>
+                    <p class="text-gray-600 mt-2">Please select a semester to get started.</p>
+                </div>
+
+                <!-- Timetable Container -->
+                <div id="timetableContainer" class="hidden">
+                    <!-- Desktop Timetable -->
+                    <div class="hidden lg:block bg-white p-4 rounded-xl shadow-lg">
+                        <div id="timetableGrid" class="grid" style="gap: 1px; background-color: #e5e7eb;">
+                            <!-- Grid populated by JS -->
+                        </div>
+                    </div>
+                    <!-- Mobile Timetable -->
+                    <div class="block lg:hidden bg-white rounded-xl shadow-lg">
+                        <div class="days-tabs flex border-b border-gray-200">
+                            <!-- Day tabs populated by JS -->
+                        </div>
+                        <div id="mobileTimetableContent" class="p-4">
+                            <!-- Mobile content populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="text-center py-6 text-gray-500 text-sm">
+            <p class="mb-2">Made with ❤️ by <a href="https://x.com/vanshcodeworks" target="_blank" class="font-semibold text-blue-600 hover:underline">vanshcodeworks</a></p>
+            <div class="flex justify-center space-x-4">
+                <a href="https://x.com/vanshcodeworks" target="_blank" class="hover:text-blue-600 hover:underline">X.com</a>
+                <span>&bull;</span>
+                <a href="https://linkedin.com/in/vanshcodeworks" target="_blank" class="hover:text-blue-600 hover:underline">LinkedIn</a>
+                 <span>&bull;</span>
+                <a href="https://github.com/vanshcodeworks" target="_blank" class="hover:text-blue-600 hover:underline">GitHub</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Class Detail Modal -->
+    <div id="classModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-auto z-10 fade-in">
+            <div class="p-5 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-bold">Class Details</h3>
+                <button class="text-gray-400 hover:text-gray-700 text-2xl" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="flex flex-col">
+                    <span class="text-sm text-gray-500">Subject</span>
+                    <span id="modalSubject" class="font-semibold text-lg"></span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-sm text-gray-500">Faculty</span>
+                    <span id="modalFaculty" class="font-semibold"></span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Time</span>
+                        <span id="modalTime" class="font-semibold"></span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-sm text-gray-500">Room</span>
+                        <span id="modalRoom" class="font-semibold"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const fullTimetableData = {
+            '3': {
+                subjectDetails: {
+                    'TCS-308': { name: 'Logic Design & Comp. Org.', faculty: { A: 'Dr. Hemant Singh Pokhariya', B: 'Dr. Hemant Singh Pokhariya', C: 'Dr. Hemant Singh Pokhariya', D: 'Dr. Pradeep Juneja', E: 'Dr. Vinay Kumar', F: 'Dr. Abhay Sharma', G: 'Dr. Mridul Gupta', H: 'Dr. Mridul Gupta', ARQ: 'Dr. Gourav Verma', 'AI & ML1': 'Dr. Pradeep Juneja', 'AI & ML2': 'Dr. Sribidhya Mohanty', AI: 'Dr. Sribidhya Mohanty', 'AI & DS1': 'Dr. Abhay Sharma', 'AI & DS2': 'Dr. Mridul Gupta', Cyber: 'Dr. Gourav Verma' } },
+                    'TCS-302': { name: 'Data Structures with C', faculty: { A: 'Mr. Akshay Rajput', B: 'Mr. Akshay Rajput', C: 'Mr. Akshay Rajput', D: 'Mr. Upendra Aswal', E: 'Mr. Upendra Aswal', F: 'Mr. Upendra Aswal', G: 'Mr. Upendra Aswal', H: 'Mr. Upendra Aswal', ARQ: 'Mr. Upendra Aswal', 'AI & ML1': 'Mr. Akshay Rajput', 'AI & ML2': 'Mr. Akshay Rajput', AI: 'Mr. Akshay Rajput', 'AI & DS1': 'Dr .Hirday Kumar Gupta', 'AI & DS2': 'Dr .Hirday Kumar Gupta', Cyber: 'Dr .Hirday Kumar Gupta' } },
+                    'TCS-307': { name: 'OOP with C++', faculty: { A: 'Mr. Kireet Joshi', B: 'Mr. Kireet Joshi', C: 'Dr. Amit Kumar', D: 'Dr. Amit Kumar', E: 'Dr. Jyoti Agarwal', F: 'Dr. Pawan Kumar Mishra', G: 'Dr. Jyoti Agarwal', H: 'Dr. Pawan Kumar Mishra', ARQ: 'Mr. Kireet Joshi', AI: 'Dr. Jyoti Agarwal', 'AI & DS1': 'Dr. Sanjeev Kukreti', 'AI & DS2': 'Dr. Sanjeev Kukreti', Cyber: 'Mr. Sanjeev Kukreti' } },
+                    'TMA-316': { name: 'Discrete Structures', faculty: { A: 'Dr. Neeraj Dhiman', B: 'Dr. Seema Saini', C: 'Dr. Ganga Negi', D: 'Dr. Neeraj Dhiman', E: 'Dr. Anand Chauhan', F: 'Dr. Anand Chauhan', G: 'Dr. Seema Saini', H: 'Dr. Anand Chauhan', ARQ: 'Dr. Neeraj Dhiman', Cyber: 'Dr. Seema Saini' } },
+                    'TCS-346': { name: 'Python Programming', faculty: { 'AI & ML1': 'Dr. Guru Prasad M S', 'AI & ML2': 'Dr. Guru Prasad M S' } },
+                    'TCS-364': { name: 'Fundamentals of AI & ML', faculty: { 'AI & ML1': 'Dr. Ankit Tomar', 'AI & ML2': 'Dr. Ankit Tomar' } },
+                    'TCS-343': { name: 'Math Foundations for AI', faculty: { AI: 'Dr. Teekam Singh', 'AI & DS1': 'Dr. Teekam Singh', 'AI & DS2': 'Dr. Teekam Singh' } },
+                    'PCS-308': { name: 'LDCO Lab', faculty: 'Varies' }, 'PCS-302': { name: 'Data Structures Lab', faculty: 'Varies' }, 'PCS-307': { name: 'OOPS with C++ Lab', faculty: 'Varies' }, 'PCS-364': { name: 'AI & ML Lab using Python', faculty: 'Varies' },
+                    'TOC-301': { name: 'Probability & Stats (Audit)', faculty: 'Dr. Anju Saini' }, 'XCS-301': { name: 'Career Skills', faculty: 'Varies' }, 'UHV-301': { name: 'UHV-II', faculty: 'Dept. of Humanities' }, 'ELEC': { name: 'Elective', faculty: 'Varies' }, 'SWAYAM': { name: 'SWAYAM/Training/LIB', faculty: 'N/A' }
+                },
+                timetable: {
+                    "A": { "Monday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 12:00", s: "XCS-301", r: "LT-1" }, { time: "12:05 - 1:00", s: "XCS-301", r: "LT-1" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }], "Tuesday": [{ time: "9:00 - 10:50", s: "TCS-307", r: "LT-1" }, { time: "11:00 - 1:00", s: "PCS-308", r: "Lab-1" }, { time: "11:00 - 1:00", s: "PCS-307", r: "Lab-5" }, { time: "1:00 - 1:55", s: "TMA-316", r: "LT-1" }, { time: "1:55 - 4:00", s: "ELEC", r: "N/A" }], "Wednesday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 1:00", s: "PCS-302", r: "Digital Lab-1" }, { time: "1:00 - 1:55", s: "TCS-307", r: "LT-1" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }], "Thursday": [{ time: "9:00 - 10:50", s: "TCS-308", r: "LT-1" }, { time: "11:00 - 1:00", s: "PCS-302", r: "Digital Lab-1" }, { time: "1:00 - 1:55", s: "TMA-316", r: "LT-1" }, { time: "1:55 - 4:00", s: "ELEC", r: "N/A" }], "Friday": [{ time: "9:00 - 9:55", s: "TCS-307", r: "LT-1" }, { time: "9:55 - 10:50", s: "TMA-316", r: "LT-1" }, { time: "11:00 - 12:00", s: "XCS-301", r: "LT-1" }, { time: "12:05 - 1:00", s: "TCS-308", r: "LT-1" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }], "Saturday": [{ time: "8:05 - 9:00", s: "UHV-301", r: "Online" }, { time: "9:00 - 9:55", s: "TCS-308", r: "LT-1" }, { time: "9:55 - 12:00", s: "PCS-308", r: "Lab-1" }, { time: "9:55 - 12:00", s: "PCS-307", r: "Lab-5" }, { time: "12:05 - 1:00", s: "TMA-316", r: "LT-1" }, { time: "1:55 - 2:50", s: "TOC-301", r: "N/A" }, { time: "3:10 - 4:00", s: "UHV-301", r: "Online" }] },
+                    "B": { "Monday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 12:00", s: "XCS-301", r: "LT-5" }, { time: "12:05 - 1:00", s: "XCS-301", r: "LT-1" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }], "Tuesday": [{ time: "9:00 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "9:55 - 10:50", s: "TMA-316", r: "LT-1" }, { time: "11:00 - 12:00", s: "XCS-301", r: "LT-1" }, { time: "1:55 - 2:50", s: "TOC-301", r: "N/A" }, { time: "3:10 - 5:00", s: "ELEC", r: "N/A" }], "Wednesday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 12:00", s: "TCS-308", r: "LT-1" }, { time: "12:05 - 1:00", s: "TMA-316", r: "LT-1" }, { time: "1:55 - 2:50", s: "TCS-307", r: "LT-1" }, { time: "3:10 - 5:00", s: "PCS-302", r: "Digital Lab-1" }], "Thursday": [{ time: "9:00 - 10:50", s: "PCS-308", r: "Lab-1" }, { time: "9:00 - 10:50", s: "PCS-307", r: "Lab-5" }, { time: "11:00 - 12:00", s: "TCS-308", r: "LT-1" }, { time: "12:05 - 1:00", s: "TMA-316", r: "LT-1" }, { time: "1:55 - 2:50", s: "TCS-307", r: "LT-1" }, { time: "3:10 - 5:00", s: "ELEC", r: "N/A" }], "Friday": [{ time: "9:00 - 10:50", s: "PCS-302", r: "Digital Lab-1" }, { time: "11:00 - 1:00", s: "PCS-308", r: "Lab-1" }, { time: "11:00 - 1:00", s: "PCS-307", r: "Lab-5" }, { time: "1:55 - 2:50", s: "TCS-307", r: "LT-1" }, { time: "3:10 - 4:55", s: "TCS-308", r: "LT-1" }], "Saturday": [{ time: "8:05 - 9:00", s: "UHV-301", r: "Online" }, { time: "9:00 - 9:55", s: "TCS-307", r: "LT-2" }, { time: "9:55 - 10:50", s: "TMA-316", r: "LT-2" }, { time: "11:00 - 12:00", s: "TOC-301", r: "N/A" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }, { time: "4:00 - 4:55", s: "UHV-301", r: "Online" }] },
+                    "C": { "Monday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 1:00", s: "PCS-302", r: "Digital Lab-1" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }], "Tuesday": [{ time: "9:00 - 9:55", s: "LIB", r: "N/A" }, { time: "9:55 - 10:50", s: "TCS-307", r: "CR-10" }, { time: "11:00 - 1:00", s: "PCS-302", r: "Digital Lab-1" }, { time: "1:55 - 2:50", s: "TCS-308", r: "LT-5" }, { time: "3:10 - 5:00", s: "ELEC", r: "N/A" }], "Wednesday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 1:00", s: "PCS-308", r: "Lab-1" }, { time: "11:00 - 1:00", s: "PCS-307", r: "Lab-5" }, { time: "1:55 - 2:50", s: "TCS-308", r: "LT-2" }, { time: "3:10 - 4:55", s: "TMA-316", r: "LT-2" }], "Thursday": [{ time: "9:00 - 9:55", s: "TMA-316", r: "LT-2" }, { time: "9:55 - 10:50", s: "TCS-307", r: "LT-2" }, { time: "11:00 - 1:00", s: "PCS-308", r: "Lab-1" }, { time: "11:00 - 1:00", s: "PCS-307", r: "Lab-5" }, { time: "1:55 - 2:50", s: "TCS-308", r: "CR-7" }, { time: "3:10 - 5:00", s: "ELEC", r: "N/A" }], "Friday": [{ time: "9:00 - 9:55", s: "TMA-316", r: "LT-2" }, { time: "9:55 - 10:50", s: "XCS-301", r: "LT-2" }, { time: "11:00 - 12:00", s: "TCS-308", r: "LT-2" }, { time: "12:05 - 1:00", s: "XCS-301", r: "LT-2" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "TOC-301", r: "N/A" }], "Saturday": [{ time: "9:00 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "9:55 - 10:50", s: "XCS-301", r: "LT-5" }, { time: "11:00 - 1:00", s: "TCS-307", r: "CR-7" }, { time: "1:55 - 2:50", s: "UHV-301", r: "Online" }, { time: "3:10 - 4:00", s: "UHV-301", r: "Online" }] },
+                    "D": { "Monday": [{ time: "9:00 - 9:55", s: "XCS-301", r: "LT-2" }, { time: "9:55 - 10:50", s: "XCS-301", r: "LT-1" }, { time: "11:00 - 1:00", s: "TCS-308", r: "LT-2" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }], "Tuesday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 12:00", s: "TCS-307", r: "LT-2" }, { time: "1:55 - 4:00", s: "PCS-302", r: "Digital Lab-2" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Wednesday": [{ time: "9:00 - 9:55", s: "LIB", r: "N/A" }, { time: "11:00 - 12:00", s: "TCS-307", r: "CR-10" }, { time: "12:05 - 1:00", s: "TMA-316", r: "LT-2" }, { time: "1:00 - 1:55", s: "TCS-308", r: "LT-2" }, { time: "1:55 - 2:50", s: "TOC-301", r: "N/A" }, { time: "3:10 - 5:00", s: "PCS-308", r: "Lab-1" }, { time: "3:10 - 5:00", s: "PCS-307", r: "Digital Lab-5" }], "Thursday": [{ time: "9:00 - 10:50", s: "TCS-302", r: "LT-13" }, { time: "11:00 - 12:00", s: "XCS-301", r: "LT-2" }, { time: "12:05 - 1:00", s: "TCS-308", r: "LT-2" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 5:00", s: "ELEC", r: "N/A" }], "Friday": [{ time: "9:00 - 10:50", s: "PCS-302", r: "Digital Lab-2" }, { time: "11:00 - 12:00", s: "TMA-316", r: "LT-5" }, { time: "12:05 - 1:00", s: "TCS-307", r: "LT-5" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 5:00", s: "PCS-308", r: "Lab-1" }, { time: "3:10 - 5:00", s: "PCS-307", r: "Lab-5" }], "Saturday": [{ time: "8:05 - 9:00", s: "UHV-301", r: "Online" }, { time: "9:00 - 9:55", s: "TCS-307", r: "LT-7" }, { time: "9:55 - 12:00", s: "TMA-316", r: "LT-1" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }, { time: "4:00 - 4:55", s: "UHV-301", r: "Online" }] }
+                }
+            },
+            '5': {
+                subjectDetails: {
+                    'TCS-501': { name: 'System Software', faculty: { A: 'Dr. Devesh Pratap Singh', B: 'Dr. Devesh Pratap Singh', C: 'Dr. Devesh Pratap Singh', D: 'Dr. Devesh Pratap Singh', E: 'Mr. Piyush Agarwal', F: 'Mr. Piyush Agarwal', G: 'Mr. Piyush Agarwal', H: 'Mr. Piyush Agarwal', ARQ: 'Mr. Piyush Agarwal' } }, 'TCS-502': { name: 'Operating Systems', faculty: { A: 'Dr. Ashish Garg', B: 'Dr. Ashish Garg', C: 'Dr. Vikash Tripathi', D: 'Dr. Vikash Tripathi', E: 'Dr. Ashish Garg', F: 'Ms.Anamika Sharma', G: 'Dr. Hradesh Kumar', H: 'Dr. Surendra Singh Samant', ARQ: 'Dr. Pramod Mehra', ML1: 'Dr.Vivek Tomar', ML2: 'Ms. Anamika Sharma', DS1: 'Dr. Vivek Tomar', DS2: 'Mr. Vishal Trivedi', AI: 'Mr. Vishal Trivedi', Cyber: 'Dr. Hradesh Kumar' } }, 'TCS-503': { name: 'Database Management Systems', faculty: { A: 'Mr. Navin Garg', B: 'Mr. Navin Garg', C: 'Dr. Parul Madan', D: 'Dr. Parul Madan', E: 'Ms. Vishu Tyagi', F: 'Ms. Tanusha Mittal', G: 'Mr. Priyank Pandey', H: 'Mr. Sharath K R', ARQ: 'Mr. Chitransh Bose', ML1: 'Mr. Mohd. Rehan', ML2: 'Mr. Mohd. Rehan', DS1: 'Mr. Priyank Pandey', DS2: 'Mr. Sharath K R', AI: 'Ms. Vishu Tyagi', Cyber: 'Ms. Tanusha Mittal' } }, 'TCS-514': { name: 'Computer Networks-I', faculty: { A: 'Dr. Akansha Gupta', B: 'Dr. Akansha Gupta', C: 'Dr. Sumit Pundir', D: 'Dr. Sumit Pundir', E: 'Dr. Sumit Pundir', F: 'Dr. Sumit Pundir', G: 'Dr. Sarvesh Vishwakarma', H: 'Dr. Neha Tripathi', ARQ: 'Dr. Sarvesh Vishwakarma' } }, 'TCS-511': { name: 'Computer Networks-I', faculty: { ML1: 'Dr. Pradeep Bedi', ML2: 'Dr. Pradeep Bedi', DS1: 'Dr. Pradeep Bedi', DS2: 'Dr. Mansi Sharma', AI: 'Dr. Santosh Kumar', Cyber: 'Dr. Santosh Kumar' } }, 'XCS-501': { name: 'Career Skills', faculty: 'QAR/Verbal/Soft Skills' }, 'TCS-586': { name: 'Parallel Computer Architecture (Swayam)', faculty: 'N/A' }, 'TOC-501': { name: 'Foundations of Data Science (Audit)', faculty: 'N/A' }, 'CEC': { name: 'Career Excellence Classes', faculty: 'Varies' }, 'PCS-502': { name: 'Operating Systems Lab', faculty: 'Varies' }, 'PCS-503': { name: 'DBMS Lab', faculty: 'Varies' }, 'PCS-514': { name: 'Computer Networks-I Lab', faculty: 'Varies' }, 'PCS-511(S)': { name: 'OS & CN Lab', faculty: 'Varies' }, 'TCS-564': { name: 'Natural Language Processing and Computer Vision', faculty: { ML1: 'Mr. Dibyahash Bordoloi', ML2: 'Mr. Dibyahash Bordoloi' } }, 'PCS-564': { name: 'NLP & CV Lab', faculty: 'Varies' }, 'TCS-562': { name: 'Introduction to AI and Data Science', faculty: { DS1: 'Dr. Deepak Gaur', DS2: 'Dr. Anita Saroj' } }, 'PCS-562': { name: 'AI & Data Science Lab', faculty: 'Varies' }, 'TCS-542': { name: 'Introduction to Artificial Intelligence', faculty: { AI: 'Dr. Upma Jain' } }, 'PCS-542': { name: 'Intro to AI Lab', faculty: 'Varies' }, 'TCS-597': { name: 'Computer System Security', faculty: { Cyber: 'Dr. Ankit Vishnoi' } }, 'PCS-597': { name: 'Computer System Security Lab', faculty: 'Varies' }, 'TCS-549': { name: 'Data Science: Tableau Specialization', faculty: 'Dr. Prabhdeep Singh' }, 'LIB': { name: 'Library', faculty: 'N/A' }, 'ELEC': { name: 'Elective', faculty: 'Varies' }, 'SWAYAM': { name: 'SWAYAM/Training/Extra-Curricular', faculty: 'N/A' }
+                },
+                timetable: {
+                    "A": { "Monday": [{ time: "9:00 - 9:55", s: "TCS-503", r: "LT-7" }, { time: "9:55 - 10:50", s: "XCS-501", r: "LT-7" }, { time: "11:00 - 1:00", s: "PCS-503", r: "Lab-1" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:55", s: "PCS-502", r: "Lab-1" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 9:55", s: "TCS-514", r: "LT-7" }, { time: "11:00 - 12:00", s: "TCS-501", r: "LT-7" }, { time: "12:05 - 1:00", s: "TCS-503", r: "LT-7" }, { time: "1:55 - 4:00", s: "PCS-503", r: "Lab-1" }, { time: "4:00 - 5:50", s: "TCS-502", r: "LT-1" }], "Wednesday": [{ time: "8:05 - 11:00", s: "SWAYAM", r: "N/A" }, { time: "11:00 - 12:00", s: "TCS-514", r: "LT-7" }, { time: "12:05 - 1:00", s: "TCS-501", r: "LT-7" }, { time: "1:55 - 4:00", s: "PCS-514", r: "Lab-1" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "XCS-501", r: "LT-7" }, { time: "9:55 - 12:00", s: "PCS-514", r: "Lab-1" }, { time: "12:05 - 1:00", s: "TCS-503", r: "LT-7" }, { time: "1:55 - 2:50", s: "TCS-501", r: "LT-7" }, { time: "3:10 - 4:00", s: "TCS-514", r: "LT-7" }, { time: "4:00 - 5:50", s: "PCS-502", r: "Lab-1" }], "Friday": [{ time: "8:05 - 11:00", s: "SWAYAM", r: "N/A" }, { time: "11:00 - 12:00", s: "TCS-514", r: "LT-7" }, { time: "12:05 - 1:00", s: "TCS-501", r: "LT-7" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-2" }, { time: "4:00 - 5:50", s: "TCS-502", r: "LT-1" }] },
+                    "B": { "Monday": [{ time: "8:05 - 9:00", s: "TOC-501", r: "N/A" }, { time: "9:55 - 10:50", s: "XCS-501", r: "LT-7" }, { time: "11:00 - 1:00", s: "PCS-502", r: "Lab-2" }, { time: "1:55 - 2:50", s: "TCS-503", r: "LT-7" }, { time: "3:10 - 4:55", s: "PCS-514", r: "Lab-2" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 9:55", s: "LIB", r: "N/A" }, { time: "11:00 - 12:00", s: "TCS-501", r: "LT-7" }, { time: "12:05 - 1:00", s: "TCS-514", r: "Lab-2" }, { time: "1:55 - 4:00", s: "PCS-514", r: "Lab-2" }, { time: "4:00 - 5:50", s: "TCS-502", r: "LT-1" }], "Wednesday": [{ time: "8:05 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "9:55 - 10:50", s: "TCS-503", r: "CR-12" }, { time: "11:00 - 12:00", s: "TCS-501", r: "LT-7" }, { time: "12:05 - 1:00", s: "TCS-514", r: "CR-7" }, { time: "1:55 - 4:00", s: "PCS-503", r: "Lab-2" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "XCS-501", r: "LT-7" }, { time: "9:55 - 12:00", s: "PCS-503", r: "Lab-2" }, { time: "1:55 - 2:50", s: "TCS-514", r: "LT-7" }, { time: "3:10 - 4:00", s: "TCS-501", r: "LT-7" }, { time: "4:00 - 5:50", s: "TCS-503", r: "CR-3" }], "Friday": [{ time: "8:05 - 9:55", s: "PCS-502", r: "Lab-1" }, { time: "9:55 - 11:00", s: "LIB", r: "N/A" }, { time: "11:00 - 12:00", s: "TCS-501", r: "LT-7" }, { time: "12:05 - 1:00", s: "TCS-514", r: "CR-6" }, { time: "1:55 - 2:50", s: "CEC", r: "LT-2" }, { time: "3:10 - 4:55", s: "TCS-502", r: "LT-1" }] },
+                    "C": { "Monday": [{ time: "8:05 - 9:55", s: "PCS-514", r: "Lab-1" }, { time: "10:10 - 11:05", s: "XCS-501", r: "LT-7" }, { time: "11:05 - 12:00", s: "TCS-502", r: "LT-7" }, { time: "12:00 - 12:55", s: "TCS-503", r: "LT-2" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "TCS-501", r: "LT-7" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-502", r: "LT-7" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-7" }, { time: "10:10 - 12:00", s: "PCS-502", r: "Lab-1" }, { time: "1:55 - 2:50", s: "TCS-503", r: "LT-9" }, { time: "3:10 - 4:00", s: "TCS-514", r: "LT-7" }, { time: "4:00 - 4:55", s: "TCS-501", r: "LT-7" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Wednesday": [{ time: "8:05 - 9:55", s: "TCS-586", r: "N/A" }, { time: "10:10 - 12:00", s: "PCS-503", r: "Lab-1" }, { time: "12:00 - 12:55", s: "TCS-503", r: "CR-3" }, { time: "1:55 - 2:50", s: "TCS-514", r: "LT-7" }, { time: "3:10 - 4:00", s: "TCS-501", r: "LT-7" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "PCS-502", r: "Lab-1" }, { time: "10:10 - 11:05", s: "TCS-501", r: "LT-7" }, { time: "11:05 - 12:00", s: "XCS-501", r: "LT-7" }, { time: "1:55 - 2:50", s: "TCS-503", r: "LT-9" }, { time: "3:10 - 4:55", s: "PCS-514", r: "Lab-1" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Friday": [{ time: "8:05 - 9:55", s: "TCS-514", r: "LT-7" }, { time: "10:10 - 12:00", s: "PCS-503", r: "Lab-1" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-2" }, { time: "4:00 - 5:50", s: "TCS-502", r: "LT-2" }] },
+                    "D": { "Monday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "Lab-2" }, { time: "10:10 - 11:05", s: "XCS-501", r: "LT-7" }, { time: "11:05 - 12:00", s: "TCS-502", r: "LT-7" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:00", s: "TCS-503", r: "LT-2" }, { time: "4:00 - 4:55", s: "TCS-501", r: "LT-7" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-502", r: "LT-7" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-7" }, { time: "10:10 - 12:00", s: "PCS-514", r: "Lab-2" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "TCS-514", r: "LT-7" }, { time: "4:00 - 4:55", s: "TCS-501", r: "LT-7" }, { time: "4:55 - 5:50", s: "TCS-503", r: "LT-1" }], "Wednesday": [{ time: "8:05 - 9:55", s: "TCS-586", r: "N/A" }, { time: "10:10 - 12:00", s: "PCS-502", r: "Lab-2" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "TCS-514", r: "LT-7" }, { time: "4:00 - 4:55", s: "TCS-501", r: "LT-7" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "Lab-2" }, { time: "10:10 - 11:05", s: "TCS-501", r: "LT-7" }, { time: "11:05 - 12:00", s: "XCS-501", r: "LT-7" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-8" }, { time: "4:00 - 4:55", s: "TCS-503", r: "LT-1" }, { time: "4:55 - 5:50", s: "LIB", r: "N/A" }], "Friday": [{ time: "8:05 - 9:55", s: "TCS-514", r: "LT-7" }, { time: "10:10 - 12:00", s: "PCS-514", r: "Lab-2" }, { time: "1:55 - 2:50", s: "TCS-503", r: "N/A" }, { time: "3:10 - 4:55", s: "PCS-502", r: "Lab-2" }, { time: "4:55 - 5:50", s: "TCS-502", r: "LT-2" }] },
+                    "E": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-8" }, { time: "10:10 - 11:05", s: "TCS-501", r: "LT-8" }, { time: "11:05 - 12:00", s: "TCS-503", r: "LT-8" }, { time: "1:55 - 3:10", s: "PCS-514", r: "Digital Lab-2" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:55", s: "PCS-514", r: "Lab-1" }, { time: "10:10 - 11:05", s: "XCS-501", r: "LT-8" }, { time: "11:05 - 12:00", s: "TCS-514", r: "LT-8" }, { time: "12:00 - 12:55", s: "TCS-503", r: "LT-8" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:00", s: "TCS-501", r: "LT-8" }, { time: "4:00 - 5:50", s: "PCS-503", r: "Lab-1" }], "Wednesday": [{ time: "8:05 - 9:55", s: "PCS-502", r: "Lab-1" }, { time: "10:10 - 11:05", s: "XCS-501", r: "LT-8" }, { time: "11:05 - 12:00", s: "TCS-501", r: "LT-8" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:55", s: "TCS-502", r: "LT-8" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "10:10 - 12:00", s: "TCS-514", r: "LT-8" }, { time: "12:00 - 12:55", s: "TCS-503", r: "LT-8" }, { time: "1:55 - 2:50", s: "CEC", r: "LT-8" }, { time: "3:10 - 4:55", s: "TCS-502", r: "LT-1" }], "Friday": [{ time: "8:05 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "10:10 - 12:00", s: "PCS-503", r: "Digital Lab-1" }, { time: "12:00 - 12:55", s: "TCS-503", r: "LT-8" }, { time: "1:55 - 2:50", s: "TCS-501", r: "LT-8" }, { time: "3:10 - 4:00", s: "TCS-514", r: "LT-8" }, { time: "4:00 - 5:50", s: "PCS-502", r: "Lab-1" }] },
+                    "F": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-8" }, { time: "10:10 - 11:05", s: "TCS-501", r: "LT-8" }, { time: "11:05 - 12:00", s: "TCS-503", r: "LT-7" }, { time: "1:55 - 3:10", s: "PCS-502", r: "Aryabhatta Lab" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "Lab-2" }, { time: "10:10 - 11:05", s: "XCS-501", r: "LT-8" }, { time: "11:05 - 12:00", s: "TCS-514", r: "LT-8" }, { time: "12:00 - 12:55", s: "TOC-501", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-503", r: "LT-8" }, { time: "3:10 - 4:00", s: "TCS-501", r: "LT-8" }, { time: "4:00 - 5:50", s: "PCS-502", r: "Lab-2" }], "Wednesday": [{ time: "8:05 - 9:55", s: "PCS-514", r: "Lab-2" }, { time: "10:10 - 11:05", s: "XCS-501", r: "LT-8" }, { time: "11:05 - 12:00", s: "TCS-501", r: "LT-8" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:55", s: "TCS-502", r: "CR-6" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 12:00", s: "SWAYAM", r: "N/A" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-8" }, { time: "4:00 - 5:50", s: "TCS-502", r: "LT-2" }], "Friday": [{ time: "8:05 - 9:00", s: "PCS-514", r: "Lab-2" }, { time: "9:00 - 9:55", s: "TCS-502", r: "LT-8" }, { time: "10:10 - 11:05", s: "TCS-503", r: "LT-8" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "TCS-501", r: "LT-8" }, { time: "4:00 - 4:55", s: "TCS-514", r: "LT-8" }, { time: "4:55 - 5:50", s: "PCS-503", r: "Lab-2" }] },
+                    "G": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-501", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-514", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-514", r: "New Lab-2" }, { time: "1:55 - 3:10", s: "TCS-502", r: "LT-8" }, { time: "4:00 - 4:55", s: "TCS-503", r: "LT-8" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:55", s: "TCS-501", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-514", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-503", r: "New Lab-2" }, { time: "12:00 - 12:55", s: "TCS-503", r: "CR-3" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }, { time: "4:00 - 4:55", s: "TCS-586", r: "N/A" }], "Wednesday": [{ time: "8:05 - 9:00", s: "TCS-514", r: "LT-8" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-514", r: "New Lab-2" }, { time: "1:55 - 2:50", s: "XCS-501", r: "LT-8" }, { time: "3:10 - 4:55", s: "PCS-502", r: "New Lab-2" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:00", s: "TCS-501", r: "LT-8" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-502", r: "New Lab-2" }, { time: "12:00 - 12:55", s: "TCS-502", r: "CR-3" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:00", s: "SWAYAM", r: "N/A" }], "Friday": [{ time: "8:05 - 9:55", s: "TCS-514", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-501", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-503", r: "New Lab-2" }, { time: "1:55 - 2:50", s: "TCS-502", r: "LT-8" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-5" }, { time: "4:00 - 5:50", s: "TCS-503", r: "LT-8" }] },
+                    "H": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-501", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-514", r: "CR-10" }, { time: "10:10 - 12:00", s: "PCS-503", r: "New Lab-1" }, { time: "1:55 - 2:50", s: "TCS-502", r: "CR-2" }, { time: "3:10 - 4:55", s: "TCS-503", r: "CR-2" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:55", s: "TCS-501", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-514", r: "CR-10" }, { time: "10:10 - 12:00", s: "PCS-514", r: "New Lab-1" }, { time: "12:00 - 12:55", s: "TCS-502", r: "CR-2" }, { time: "1:55 - 4:00", s: "SWAYAM", r: "N/A" }, { time: "4:00 - 4:55", s: "TCS-586", r: "N/A" }], "Wednesday": [{ time: "8:05 - 9:00", s: "TCS-514", r: "CR-10" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-503", r: "New Lab-1" }, { time: "1:55 - 2:50", s: "XCS-501", r: "LT-8" }, { time: "3:10 - 4:55", s: "PCS-502", r: "New Lab-2" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:00", s: "TCS-501", r: "LT-8" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-514", r: "New Lab-1" }, { time: "12:00 - 12:55", s: "TCS-503", r: "CR-6" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:00", s: "SWAYAM", r: "N/A" }], "Friday": [{ time: "8:05 - 9:00", s: "TCS-514", r: "CR-10" }, { time: "9:00 - 9:55", s: "TCS-501", r: "LT-8" }, { time: "10:10 - 12:00", s: "PCS-502", r: "New Lab-1" }, { time: "1:55 - 2:50", s: "TCS-503", r: "LT-2" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-5" }, { time: "4:00 - 5:50", s: "TCS-502", r: "CR-2" }] },
+                    "ARQ": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-502", r: "CR-10" }, { time: "9:00 - 9:55", s: "TCS-514", r: "LT-8" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-10" }, { time: "11:05 - 12:00", s: "TCS-503", r: "CR-10" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:55", s: "PCS-503", r: "Lab-7" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-503", r: "CR-10" }, { time: "9:00 - 9:55", s: "TCS-514", r: "LT-8" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-10" }, { time: "11:05 - 12:00", s: "TCS-501", r: "CR-10" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:55", s: "PCS-514", r: "Lab-7" }, { time: "4:55 - 5:50", s: "PCS-502", r: "Lab-7" }], "Wednesday": [{ time: "8:05 - 9:00", s: "TCS-514", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-503", r: "CR-10" }, { time: "10:10 - 12:00", s: "TCS-502", r: "CR-10" }, { time: "12:00 - 12:55", s: "XCS-501", r: "LT-8" }, { time: "1:55 - 4:00", s: "PCS-503", r: "Lab-7" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 9:55", s: "TCS-501", r: "CR-10" }, { time: "10:10 - 11:05", s: "TCS-502", r: "CR-10" }, { time: "11:05 - 12:00", s: "TOC-501", r: "N/A" }, { time: "1:55 - 4:00", s: "PCS-514", r: "Lab-7" }, { time: "4:00 - 4:55", s: "PCS-502", r: "Lab-7" }], "Friday": [{ time: "8:05 - 9:00", s: "TCS-514", r: "LT-8" }, { time: "9:00 - 9:55", s: "TCS-503", r: "CR-10" }, { time: "10:10 - 12:00", s: "TCS-501", r: "CR-10" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-5" }, { time: "4:00 - 4:55", s: "SWAYAM", r: "N/A" }] },
+                    "ML1": { "Monday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "New Lab-1" }, { time: "8:05 - 9:55", s: "PCS-564", r: "New Lab-2" }, { time: "10:10 - 11:05", s: "TCS-503", r: "CR-3" }, { time: "11:05 - 12:00", s: "LIB", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-502", r: "LT-9" }, { time: "3:10 - 4:00", s: "TCS-511", r: "LT-9" }, { time: "4:00 - 4:55", s: "TCS-564", r: "LT-9" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:55", s: "PCS-511(S)", r: "New Lab-1 & 2" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-3" }, { time: "11:05 - 12:00", s: "LIB", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-503", r: "LT-8" }, { time: "3:10 - 4:00", s: "TCS-511", r: "LT-9" }, { time: "4:00 - 4:55", s: "TCS-564", r: "LT-9" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Wednesday": [{ time: "8:05 - 9:55", s: "TCS-564", r: "LT-7" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-3" }, { time: "11:05 - 12:00", s: "LIB", r: "N/A" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:55", s: "TCS-502", r: "CR-7" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "PCS-511(S)", r: "New Lab-1 & 2" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-3" }, { time: "11:05 - 12:00", s: "LIB", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-503", r: "CR-3" }, { time: "3:10 - 4:55", s: "TCS-511", r: "LT-9" }, { time: "4:55 - 5:50", s: "TCS-586", r: "N/A" }], "Friday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "New Lab-1" }, { time: "8:05 - 9:55", s: "PCS-564", r: "New Lab-2" }, { time: "10:10 - 11:05", s: "TCS-503", r: "CR-10" }, { time: "11:05 - 12:00", s: "LIB", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-502", r: "LT-6" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-6" }, { time: "4:00 - 4:55", s: "TOC-501", r: "N/A" }] },
+                    "ML2": { "Monday": [{ time: "8:05 - 9:55", s: "XCS-501", r: "CR-3" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "11:05 - 12:00", s: "TCS-502", r: "CR-3" }, { time: "12:00 - 12:55", s: "TCS-503", r: "CR-3" }, { time: "1:55 - 2:50", s: "TCS-511", r: "LT-9" }, { time: "3:10 - 4:00", s: "TCS-564", r: "LT-9" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 9:55", s: "LIB", r: "N/A" }, { time: "10:10 - 11:05", s: "TCS-502", r: "CR-3" }, { time: "11:05 - 12:00", s: "TCS-503", r: "CR-7" }, { time: "1:55 - 2:50", s: "TCS-511", r: "LT-9" }, { time: "3:10 - 4:00", s: "TCS-564", r: "LT-9" }, { time: "4:00 - 5:50", s: "PCS-503", r: "New Lab-1" }, { time: "4:00 - 5:50", s: "PCS-564", r: "New Lab-2" }], "Wednesday": [{ time: "8:05 - 9:55", s: "TCS-564", r: "LT-7" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "1:55 - 4:00", s: "PCS-511(S)", r: "Lab-1" }, { time: "4:00 - 4:55", s: "TOC-501", r: "N/A" }, { time: "4:55 - 5:50", s: "TCS-503", r: "CR-2" }], "Thursday": [{ time: "8:05 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "11:05 - 12:00", s: "TCS-502", r: "CR-3" }, { time: "12:00 - 12:55", s: "TCS-503", r: "CR-7" }, { time: "1:55 - 4:00", s: "TCS-511", r: "LT-9" }, { time: "4:00 - 5:50", s: "PCS-503", r: "New Lab-1" }, { time: "4:00 - 5:50", s: "PCS-564", r: "New Lab-2" }], "Friday": [{ time: "8:05 - 9:55", s: "SWAYAM", r: "N/A" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "11:05 - 12:00", s: "XCS-501", r: "CR-7" }, { time: "12:00 - 12:55", s: "TCS-502", r: "CR-7" }, { time: "1:55 - 2:50", s: "CEC", r: "LT-6" }, { time: "3:10 - 4:55", s: "PCS-511(S)", r: "New Lab-1 & 2" }] },
+                    "DS1": { "Monday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "Lab-5" }, { time: "8:05 - 9:55", s: "PCS-562", r: "Lab-7" }, { time: "10:10 - 11:05", s: "TCS-562", r: "CR-6" }, { time: "11:05 - 12:00", s: "TCS-503", r: "CR-6" }, { time: "12:00 - 12:55", s: "TCS-511", r: "CR-6" }, { time: "1:55 - 4:00", s: "TCS-502", r: "CR-3" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-562", r: "CR-6" }, { time: "9:00 - 9:55", s: "TCS-503", r: "CR-6" }, { time: "10:10 - 12:00", s: "XCS-501", r: "CR-6" }, { time: "12:00 - 12:55", s: "TCS-511", r: "CR-6" }, { time: "1:55 - 4:00", s: "PCS-511(S)", r: "New Lab-1 & 2" }, { time: "4:00 - 4:55", s: "SWAYAM", r: "N/A" }], "Wednesday": [{ time: "8:05 - 9:55", s: "PCS-503", r: "New Lab-1" }, { time: "8:05 - 9:55", s: "PCS-562", r: "New Lab-2" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-3" }, { time: "11:05 - 12:00", s: "TCS-502", r: "CR-6" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:00", s: "TOC-501", r: "N/A" }, { time: "4:00 - 4:55", s: "TCS-511", r: "CR-10" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "TCS-503", r: "CR-6" }, { time: "10:10 - 11:05", s: "TCS-502", r: "CR-6" }, { time: "11:05 - 12:00", s: "TCS-562", r: "CR-6" }, { time: "1:55 - 2:50", s: "LIB", r: "N/A" }, { time: "3:10 - 4:55", s: "PCS-511(S)", r: "New Lab-1 & 2" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Friday": [{ time: "8:05 - 9:00", s: "TCS-586", r: "N/A" }, { time: "9:00 - 12:00", s: "TCS-549", r: "Lab-6" }, { time: "12:00 - 12:55", s: "TCS-511", r: "LT-5" }, { time: "1:55 - 2:50", s: "CEC", r: "LT-7" }, { time: "3:10 - 4:00", s: "TCS-562", r: "LT-7" }, { time: "4:00 - 4:55", s: "LIB", r: "N/A" }] },
+                    "DS2": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-562", r: "CR-2" }, { time: "9:00 - 9:55", s: "TCS-502", r: "CR-2" }, { time: "11:05 - 12:00", s: "TCS-586", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-511", r: "LT-2" }, { time: "3:10 - 4:55", s: "PCS-562", r: "New Lab-2" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-562", r: "CR-3" }, { time: "9:00 - 9:55", s: "XCS-501", r: "CR-3" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "1:55 - 4:00", s: "PCS-503", r: "New Lab-1 & 2" }, { time: "4:00 - 5:50", s: "PCS-511(S)", r: "Digital Lab-1" }], "Wednesday": [{ time: "8:05 - 9:00", s: "XCS-501", r: "CR-3" }, { time: "9:00 - 9:55", s: "TCS-503", r: "CR-3" }, { time: "10:10 - 11:05", s: "TOC-501", r: "N/A" }, { time: "1:55 - 4:00", s: "TCS-511", r: "LT-9" }, { time: "4:00 - 4:55", s: "TCS-502", r: "LT-9" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:55", s: "TCS-502", r: "CR-3" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "1:55 - 3:10", s: "PCS-562", r: "Lab-1" }, { time: "3:10 - 4:55", s: "PCS-503", r: "Lab-2" }], "Friday": [{ time: "8:05 - 9:00", s: "TCS-503", r: "LT-5" }, { time: "9:00 - 9:55", s: "XCS-501", r: "LT-5" }, { time: "10:10 - 12:00", s: "TCS-549", r: "Lab-6" }, { time: "1:55 - 2:50", s: "TCS-511", r: "LT-7" }, { time: "3:10 - 4:00", s: "CEC", r: "LT-7" }, { time: "4:00 - 5:50", s: "TCS-562", r: "LT-9" }] },
+                    "AI": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-502", r: "CR-6" }, { time: "9:00 - 9:55", s: "TCS-511", r: "CR-6" }, { time: "10:10 - 12:00", s: "PCS-503", r: "Lab-6" }, { time: "1:55 - 2:50", s: "TCS-542", r: "CR-7" }, { time: "3:10 - 4:55", s: "TCS-503", r: "CR-7" }, { time: "4:55 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "XCS-501", r: "CR-10" }, { time: "9:00 - 9:55", s: "TCS-511", r: "CR-7" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "1:55 - 3:10", s: "TCS-502", r: "Lab-1" }, { time: "3:10 - 4:00", s: "TCS-503", r: "Lab-1" }, { time: "4:00 - 5:50", s: "PCS-542", r: "Aryabhatta Lab" }], "Wednesday": [{ time: "8:05 - 9:00", s: "XCS-501", r: "CR-6" }, { time: "9:00 - 9:55", s: "TCS-542", r: "CR-6" }, { time: "10:10 - 11:05", s: "TOC-501", r: "N/A" }, { time: "11:05 - 12:00", s: "TCS-502", r: "CR-7" }, { time: "12:00 - 12:55", s: "XCS-501", r: "LT-8" }, { time: "1:55 - 4:00", s: "PCS-511(S)", r: "Lab-6" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Thursday": [{ time: "8:05 - 9:00", s: "TCS-542", r: "CR-7" }, { time: "9:00 - 9:55", s: "TCS-511", r: "CR-7" }, { time: "10:10 - 11:05", s: "LIB", r: "N/A" }, { time: "1:55 - 3:10", s: "PCS-542", r: "Lab-5" }, { time: "3:10 - 4:55", s: "PCS-503", r: "Aryabhatta Lab" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Friday": [{ time: "8:05 - 9:00", s: "TCS-502", r: "CR-6" }, { time: "9:00 - 9:55", s: "TCS-542", r: "CR-6" }, { time: "10:10 - 11:05", s: "TOC-501", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-511", r: "CR-7" }, { time: "3:10 - 4:00", s: "TCS-503", r: "CR-6" }, { time: "4:00 - 4:55", s: "CEC", r: "LT-7" }, { time: "4:55 - 5:50", s: "PCS-511(S)", r: "Lab-7" }] },
+                    "CYBER": { "Monday": [{ time: "8:05 - 9:00", s: "TCS-597", r: "CR-7" }, { time: "9:00 - 9:55", s: "TCS-511", r: "CR-7" }, { time: "10:10 - 11:05", s: "XCS-501", r: "CR-7" }, { time: "11:05 - 12:00", s: "TCS-503", r: "CR-7" }, { time: "12:00 - 12:55", s: "TCS-502", r: "CR-7" }, { time: "1:55 - 3:10", s: "PCS-597", r: "New Lab-1" }, { time: "4:00 - 5:50", s: "ELEC", r: "N/A" }], "Tuesday": [{ time: "8:05 - 9:00", s: "TCS-502", r: "CR-7" }, { time: "9:00 - 9:55", s: "TCS-511", r: "CR-7" }, { time: "10:10 - 12:00", s: "TCS-503", r: "CR-7" }, { time: "12:00 - 12:55", s: "TCS-597", r: "CR-7" }, { time: "1:55 - 2:50", s: "TOC-501", r: "N/A" }, { time: "3:10 - 4:55", s: "PCS-511(S)", r: "Digital Lab-2" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Wednesday": [{ time: "8:05 - 9:00", s: "TCS-597", r: "CR-7" }, { time: "9:00 - 9:55", s: "XCS-501", r: "CR-7" }, { time: "10:10 - 11:05", s: "TCS-502", r: "CR-7" }, { time: "1:55 - 4:00", s: "PCS-503", r: "Lab-5" }, { time: "4:00 - 5:50", s: "PCS-597", r: "New Lab-1" }], "Thursday": [{ time: "8:05 - 9:00", s: "XCS-501", r: "CR-7" }, { time: "9:00 - 9:55", s: "TCS-511", r: "CR-7" }, { time: "10:10 - 11:05", s: "TCS-503", r: "CR-7" }, { time: "11:05 - 12:00", s: "TCS-597", r: "CR-7" }, { time: "1:55 - 2:50", s: "TCS-502", r: "CR-6" }, { time: "3:10 - 4:55", s: "PCS-503", r: "New Lab-2" }, { time: "4:55 - 5:50", s: "SWAYAM", r: "N/A" }], "Friday": [{ time: "8:05 - 9:55", s: "TCS-586", r: "N/A" }, { time: "10:10 - 12:00", s: "TOC-501", r: "N/A" }, { time: "1:55 - 2:50", s: "TCS-511", r: "CR-7" }, { time: "3:10 - 4:00", s: "TCS-503", r: "CR-7" }, { time: "4:00 - 4:55", s: "CEC", r: "LT-6" }, { time: "4:55 - 5:50", s: "PCS-511(S)", r: "Lab-5" }] }
+                }
+            }
+        };
+
+        // --- SCRIPT LOGIC ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const semesterContainer = document.getElementById('semester-selector-container');
+            const sectionSelectorWrapper = document.getElementById('section-selector-wrapper');
+            const sectionContainer = document.getElementById('section-selector-container');
+            const timetableContainer = document.getElementById('timetableContainer');
+            const welcomeState = document.getElementById('welcomeState');
+            const timetableGrid = document.getElementById('timetableGrid');
+            const mobileTabsContainer = document.querySelector('.days-tabs');
+            const mobileContentContainer = document.getElementById('mobileTimetableContent');
+            const dayNameMapping = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const todayName = dayNameMapping[new Date().getDay()];
+            
+            let activeSemester = null;
+            let activeSection = null;
+            let subjectDetails = {};
+            let timetableData = {};
+
+            // --- Time and Date ---
+            function updateTime() {
+                const now = new Date();
+                document.getElementById('currentTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('currentDate').textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+            updateTime();
+            setInterval(updateTime, 1000);
+
+            // --- Semester Selection ---
+            document.querySelectorAll('.semester-btn').forEach(button => {
+                button.addEventListener('click', () => handleSemesterSelect(button));
+            });
+
+            function handleSemesterSelect(clickedButton) {
+                activeSemester = clickedButton.dataset.semester;
+                document.querySelectorAll('.semester-btn').forEach(btn => btn.classList.remove('active'));
+                clickedButton.classList.add('active');
+
+                subjectDetails = fullTimetableData[activeSemester].subjectDetails;
+                timetableData = fullTimetableData[activeSemester].timetable;
+
+                populateSections(Object.keys(timetableData));
+                sectionSelectorWrapper.classList.remove('hidden');
+                sectionSelectorWrapper.classList.add('fade-in');
+                timetableContainer.classList.add('hidden');
+                welcomeState.classList.remove('hidden');
+                welcomeState.querySelector('p').textContent = 'Please select a section to continue.';
+            }
+
+            // --- Populate Sections ---
+            function populateSections(sections) {
+                sectionContainer.innerHTML = '';
+                sections.forEach(section => {
+                    const button = document.createElement('button');
+                    button.className = 'section-btn text-sm md:text-base bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-gray-50 hover:border-blue-400 transition-all duration-200';
+                    button.textContent = section;
+                    button.dataset.section = section;
+                    sectionContainer.appendChild(button);
+                    button.addEventListener('click', () => handleSectionSelect(button));
+                });
+            }
+            
+            function handleSectionSelect(clickedButton) {
+                activeSection = clickedButton.dataset.section;
+                document.querySelectorAll('.section-btn').forEach(btn => btn.classList.remove('active'));
+                clickedButton.classList.add('active');
+                
+                welcomeState.classList.add('hidden');
+                timetableContainer.classList.remove('hidden');
+                timetableContainer.classList.add('fade-in');
+                
+                renderTimetable(activeSection);
+            }
+
+            function renderTimetable(section) {
+                const days = Object.keys(timetableData[section] || {});
+                renderDesktopGrid(section, days);
+                renderMobileView(section, days);
+            }
+            
+            // --- Desktop Grid ---
+            function renderDesktopGrid(section, days) {
+                timetableGrid.innerHTML = '';
+                
+                let allSlots = new Set();
+                days.forEach(day => {
+                    (timetableData[section]?.[day] || []).forEach(c => allSlots.add(c.time));
+                });
+                const uniqueTimeSlots = Array.from(allSlots).sort((a,b) => timeToMinutes(a.split(' - ')[0]) - timeToMinutes(b.split(' - ')[0]));
+                
+                timetableGrid.style.gridTemplateColumns = `80px repeat(${days.length}, 1fr)`;
+
+                // Header Row
+                timetableGrid.innerHTML += `<div class="p-2 font-bold bg-gray-100 text-center text-sm rounded-tl-lg">Time</div>` + days.map(day => `<div class="p-2 font-bold bg-gray-100 text-center text-sm">${day}</div>`).join('');
+
+                uniqueTimeSlots.forEach(slot => {
+                    let rowHtml = `<div class="p-2 font-bold bg-gray-100 text-center text-xs flex items-center justify-center">${slot}</div>`;
+                    days.forEach(day => {
+                        const classInfo = findClass(section, day, slot);
+                        if (classInfo) {
+                            rowHtml += createGridCell(classInfo, section, day);
+                        } else {
+                            rowHtml += `<div class="bg-white"></div>`;
+                        }
+                    });
+                    timetableGrid.innerHTML += rowHtml;
+                });
+            }
+
+            function findClass(section, day, time) {
+                const daySchedule = timetableData[section]?.[day] || [];
+                return daySchedule.find(c => {
+                    const [classStart, classEnd] = c.time.split(' - ').map(timeToMinutes);
+                    const [slotStart, slotEnd] = time.split(' - ').map(timeToMinutes);
+                    return Math.max(classStart, slotStart) < Math.min(classEnd, slotEnd);
+                });
+            }
+
+            function createGridCell(classInfo, section, day) {
+                const subject = subjectDetails[classInfo.s] || { name: 'N/A', faculty: 'N/A' };
+                const isCurrent = isCurrentLecture(day, classInfo.time);
+                const cell = document.createElement('div');
+                cell.className = `timetable-grid-cell p-2 text-center text-xs transition-colors duration-200 flex flex-col justify-center ${isCurrent ? 'current-lecture-grid' : 'bg-white'}`;
+                cell.innerHTML = `
+                    <p class="font-bold ${isCurrent ? 'text-blue-900' : ''}">${subject.name}</p>
+                    <p class="text-gray-600">${classInfo.r}</p>
+                `;
+                cell.onclick = () => openModal(classInfo, section);
+                return cell.outerHTML;
+            }
+
+            // --- Mobile View ---
+            function renderMobileView(section, days) {
+                mobileTabsContainer.innerHTML = '';
+                const effectiveToday = days.includes(todayName) ? todayName : days[0];
+
+                days.forEach(day => {
+                    const tab = document.createElement('button');
+                    tab.className = 'day-tab flex-1 p-3 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-colors';
+                    tab.textContent = day.substring(0, 3);
+                    tab.dataset.day = day;
+                    if (day === effectiveToday) tab.classList.add('active');
+                    tab.onclick = () => {
+                        document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        showMobileDay(section, day);
+                    };
+                    mobileTabsContainer.appendChild(tab);
+                });
+                showMobileDay(section, effectiveToday);
+            }
+
+            function showMobileDay(section, day) {
+                mobileContentContainer.innerHTML = '';
+                const daySchedule = (timetableData[section]?.[day] || []).sort((a,b) => timeToMinutes(a.time.split(' - ')[0]) - timeToMinutes(b.time.split(' - ')[0]));
+                if (daySchedule.length === 0) {
+                    mobileContentContainer.innerHTML = '<p class="text-gray-500 text-center py-8">No classes scheduled for today.</p>';
+                    return;
+                }
+                const list = document.createElement('div');
+                list.className = 'space-y-3';
+                daySchedule.forEach(classInfo => {
+                    const subject = subjectDetails[classInfo.s] || { name: 'N/A', faculty: 'N/A' };
+                    const isCurrent = isCurrentLecture(day, classInfo.time);
+                    const item = document.createElement('div');
+                    item.className = `p-3 rounded-lg border border-gray-200 transition-all ${isCurrent ? 'current-lecture-mobile' : 'bg-white hover:bg-gray-50'}`;
+                    item.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <p class="font-semibold ${isCurrent ? 'font-bold text-blue-900' : 'text-gray-800'}">${subject.name}</p>
+                            ${isCurrent ? '<span class="text-xs font-bold text-white bg-blue-500 px-2 py-1 rounded-full animate-pulse">NOW</span>' : ''}
+                        </div>
+                        <div class="flex justify-between items-center mt-2 text-sm text-gray-600">
+                            <span>${classInfo.time}</span>
+                            <span class="font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">${classInfo.r}</span>
+                        </div>
+                    `;
+                    item.onclick = () => openModal(classInfo, section);
+                    list.appendChild(item);
+                });
+                mobileContentContainer.appendChild(list);
+            }
+
+            // --- Modal Logic ---
+            window.openModal = (classInfo, section) => {
+                const subject = subjectDetails[classInfo.s] || { name: 'N/A' };
+                const faculty = (typeof subject.faculty === 'object' ? subject.faculty[section] : subject.faculty) || 'N/A';
+                document.getElementById('modalSubject').textContent = subject.name;
+                document.getElementById('modalFaculty').textContent = faculty;
+                document.getElementById('modalTime').textContent = classInfo.time;
+                document.getElementById('modalRoom').textContent = classInfo.r;
+                document.getElementById('classModal').classList.remove('hidden');
+            };
+            window.closeModal = () => {
+                document.getElementById('classModal').classList.add('hidden');
+            };
+
+            // --- Utility Functions ---
+            const timeToMinutes = (timeStr) => {
+                if (!timeStr) return 0;
+                let [time, modifier] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+                if (hours < 8) { // Heuristic for PM times like 1:00, 2:00 etc.
+                    hours += 12;
+                }
+                return hours * 60 + (minutes || 0);
+            };
+
+            function isCurrentLecture(day, timeRange) {
+                if (day !== todayName) return false;
+                const now = new Date();
+                const nowInMinutes = now.getHours() * 60 + now.getMinutes();
+                const [startStr, endStr] = timeRange.split(' - ');
+                const startTime = timeToMinutes(startStr);
+                const endTime = timeToMinutes(endStr);
+                return nowInMinutes >= startTime && nowInMinutes < endTime;
+            }
+        });
+    </script>
+</body>
+</html>
